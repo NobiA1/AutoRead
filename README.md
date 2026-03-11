@@ -33,10 +33,6 @@ cd auto_read
 uv run auto_read.py --question "Your custom question here" --output "results.csv"
 ```
 
-### Example
-```bash
-uv run auto_read.py --question "Is this a multi-domain rubric benchmark? Answer Yes/No and give reason." --output "answer.csv"
-```
 
 ## Project Structure
 
