@@ -4,20 +4,32 @@ import glob
 import pandas as pd
 import json
 import yaml
+import argparse
+import sys
 from playwright.async_api import async_playwright, TimeoutError
 from openai import OpenAI
 
 # Configuration
 PAPER_DIR = "../paper"
-OUTPUT_FILE = "answer.xlsx"
 COOKIES_PATH = "cookies.json"
 TOKENS_PATH = "tokens.yaml"
 BASE_URL = "https://www.qianwen.com/read"
 
 # Load OpenAI config from tokens.yaml
 def load_openai_client():
-    with open(TOKENS_PATH, 'r') as f:
-        config = yaml.safe_load(f)
+    if not os.path.exists(TOKENS_PATH):
+        # Check if it exists in parent directory as a fallback
+        alt_path = os.path.join("..", TOKENS_PATH)
+        if os.path.exists(alt_path):
+            with open(alt_path, 'r') as f:
+                config = yaml.safe_load(f)
+        else:
+            print(f"Error: {TOKENS_PATH} not found.")
+            sys.exit(1)
+    else:
+        with open(TOKENS_PATH, 'r') as f:
+            config = yaml.safe_load(f)
+            
     client = OpenAI(
         api_key=config['openai']['api_key'],
         base_url=config['openai']['base_url']
@@ -55,6 +67,7 @@ async def process_task_and_get_summary(page, filename):
         print(f"Warning: Could not click '查看全部': {e}")
 
     try:
+        # Looking for exact text match or containing text
         task_item = page.get_by_text(display_name, exact=True).first
         if not await task_item.is_visible():
             task_item = page.get_by_text(display_name).first
@@ -104,33 +117,33 @@ async def process_task_and_get_summary(page, filename):
 
     return summary_text
 
-def get_ai_judgment(client, summary):
-    prompt = f"本文是否为多domain的rubric benchmark？请回答“是”或“否”，并在句号后给出不超过50字的理由。本文的概述如下：{summary}"
-    print("Requesting GPT-4o-mini analysis...")
+def get_ai_answer(client, summary, custom_question):
+    # Construct prompt with custom question and summary
+    prompt = f"{custom_question}\n\n本文的概述如下：{summary}"
+    print("Requesting AI analysis...")
     
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "你是一个学术辅助助手，擅长分析论文概述并给出判断。"},
+            {"role": "system", "content": "你是一个学术辅助助手，擅长分析论文概述并回答问题。"},
             {"role": "user", "content": prompt}
         ]
     )
     
     ai_response = response.choices[0].message.content
     print(f"AI Response: {ai_response}")
-    
-    judgment = "是" if "是" in ai_response[:10] else "否"
-    reason = ai_response.split("。", 1)[1].strip() if "。" in ai_response else ai_response
-    if len(reason) > 200: 
-        reason = reason[:197] + "..."
-        
-    return judgment, reason
+    return ai_response
 
 async def main():
+    parser = argparse.ArgumentParser(description="AutoRead: Paper Analysis Tool")
+    parser.add_argument("--question", type=str, required=True, help="The question to ask about the paper summary.")
+    parser.add_argument("--output", type=str, default="answer.csv", help="Output CSV filename (default: answer.csv)")
+    args = parser.parse_args()
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     cookies_file = os.path.join(script_dir, COOKIES_PATH)
     paper_dir = os.path.join(script_dir, PAPER_DIR)
-    output_path = os.path.join(script_dir, OUTPUT_FILE)
+    output_path = os.path.join(script_dir, args.output)
     screenshot_dir = os.path.join(script_dir, "chat_screenshots")
     
     os.makedirs(screenshot_dir, exist_ok=True)
@@ -178,14 +191,13 @@ async def main():
                 screenshot_path = os.path.join(screenshot_dir, f"view_{filename.replace('.pdf', '')}.png")
                 await page.screenshot(path=screenshot_path)
                 
-                # 3. Get Judgment via API
-                judgment, reason = get_ai_judgment(client, summary)
+                # 3. Get Answer via API using the custom question
+                answer = get_ai_answer(client, summary, args.question)
                 
                 results.append({
-                    "标题": filename,
-                    "导读内容": summary,
-                    "判断": judgment,
-                    "理由": reason
+                    "title": filename,
+                    "summary": summary,
+                    "answer": answer
                 })
                 print(f"Success: {filename} processed.")
                 
@@ -193,10 +205,10 @@ async def main():
                 print(f"Failed to process {filename}: {e}")
                 await page.screenshot(path=os.path.join(script_dir, f"error_{filename}.png"))
 
-        # Save to Excel
+        # Save to CSV
         if results:
             df = pd.DataFrame(results)
-            df.to_excel(output_path, index=False)
+            df.to_csv(output_path, index=False)
             print(f"Final results saved to {output_path}")
         
         await browser.close()

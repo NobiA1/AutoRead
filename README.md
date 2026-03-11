@@ -1,13 +1,13 @@
 # Paper Reading Auto-Processor
 
-An automated tool to upload research papers to [Qianwen Read](https://www.qianwen.com/read), extract summaries, and use GPT-4o-mini to judge if they are multi-domain rubric benchmarks.
+An automated tool to upload research papers to [Qianwen Read](https://www.qianwen.com/read), extract summaries, and use GPT-4o-mini to analyze them based on your custom questions.
 
 ## Features
 
 - **Automated Upload**: Uploads PDF papers from `./paper` to Qianwen Read.
 - **Summary Extraction**: Scrapes the "AI Guide" summary from the reading interface.
-- **AI Analysis**: Uses GPT-4o-mini (via OpenAI API) to analyze the summary.
-- **Result Export**: Saves results (Title, Summary, Judgment, Reason) to `answer.xlsx`.
+- **Custom AI Analysis**: Uses GPT-4o-mini (via OpenAI API) to answer any question about the paper's summary.
+- **Flexible Result Export**: Saves results (Title, Summary, Answer) to a custom CSV file.
 - **Visual Verification**: Captures screenshots of the reading interface for audit.
 
 ## Installation
@@ -22,15 +22,20 @@ An automated tool to upload research papers to [Qianwen Read](https://www.qianwe
 
 ## Configuration
 
-1. **Cookies**: Log in to Qianwen Read, export cookies in JSON format, and save as `auto_read/cookies.json`. (See `cookies.json.example`)
-2. **Tokens**: Create `tokens.yaml` in the project root with your OpenAI API key and base URL. (See `tokens.yaml.example`)
+1. **Cookies**: Log in to Qianwen Read, export cookies in JSON format, and save as `auto_read/cookies.json`.
+2. **Tokens**: Create `auto_read/tokens.yaml` (or in the root) with your OpenAI API key and base URL. (See `tokens.yaml.example`)
 
 ## Usage
 
 Place your PDF files in the `./paper` directory, then run:
 ```bash
 cd auto_read
-uv run auto_read.py
+uv run auto_read.py --question "Your custom question here" --output "results.csv"
+```
+
+### Example
+```bash
+uv run auto_read.py --question "Is this a multi-domain rubric benchmark? Answer Yes/No and give reason." --output "answer.csv"
 ```
 
 ## Project Structure
@@ -40,12 +45,12 @@ uv run auto_read.py
 ├── paper/               # Put your PDFs here
 ├── auto_read/
 │   ├── auto_read.py     # Main script
-│   ├── cookies.json     # User cookies (ignored by git)
+│   ├── cookies.json     # User cookies
+│   ├── tokens.yaml      # API tokens
 │   └── chat_screenshots/# Snapshots for verification
-├── tokens.yaml          # API tokens (ignored by git)
-└── answer.xlsx          # Final output (ignored by git)
+└── answer.csv           # Final output (title, summary, answer)
 ```
 
 ## License
 
-MIT License. See [LICENSE](LICENSE) for details.
+MIT License.
