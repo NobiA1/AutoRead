@@ -33,10 +33,6 @@ cd auto_read
 uv run auto_read.py --question "这里写你的提问" --output "results.csv"
 ```
 
-### 示例
-```bash
-uv run auto_read.py --question "本文是否为多domain的rubric benchmark？请回答“是”或“否”，并在句号后给出不超过50字的理由。" --output "answer.csv"
-```
 
 ## 项目结构
 
