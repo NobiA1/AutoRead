@@ -1,0 +1,10 @@
+cookies.json.bak
+tokens.yaml.bak
+cookies.json
+tokens.yaml
+answer.xlsx
+.venv/
+__pycache__/
+.DS_Store
+*.png
+!chat_screenshots/.gitkeep

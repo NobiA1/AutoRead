@@ -1,0 +1,12 @@
+[
+  {
+    "name": "example_cookie_name",
+    "value": "example_value",
+    "domain": ".qianwen.com",
+    "path": "/",
+    "expires": 1234567890,
+    "httpOnly": true,
+    "secure": true,
+    "sameSite": "Lax"
+  }
+]
